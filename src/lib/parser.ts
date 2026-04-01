@@ -8,7 +8,7 @@ export function parseFile(buffer: Buffer, fileName: string): ParsedRow[] {
   const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true })
   const sheetName = workbook.SheetNames[0]
   const worksheet = workbook.Sheets[sheetName]
-  const data = XLSX.utils.sheet_to_json<ParsedRow>(worksheet, { raw: false, dateNF: 'yyyy-mm-dd' })
+  const data = XLSX.utils.sheet_to_json<ParsedRow>(worksheet, { raw: false, dateNF: 'yyyy-MM-dd' })
   return data
 }
 
