@@ -12,8 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const rows = parseFile(buffer, file.name)
-
+    const rows = await parseFile(buffer, file.name)
     const mappedData = rows.map(mapFirstChargeData)
 
     const result = await prisma.firstChargeData.createMany({

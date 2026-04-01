@@ -25,10 +25,15 @@ export default function FileUploader({ title, description, onDataParsed, accept 
     setFileName(file.name)
 
     try {
-      const buffer = await file.arrayBuffer()
-      const { parseFile } = await import('@/lib/parser')
-      const data = parseFile(Buffer.from(buffer), file.name)
-      onDataParsed(data as ParsedRow[], file)
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/preview', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || '解析失败')
+      }
+      const { rows } = await res.json()
+      onDataParsed(rows as ParsedRow[], file)
     } catch (err) {
       setError('文件解析失败，请检查文件格式')
       console.error(err)

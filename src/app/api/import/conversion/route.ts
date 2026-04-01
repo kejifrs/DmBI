@@ -13,8 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const rows = parseFile(buffer, file.name)
-
+    const rows = await parseFile(buffer, file.name)
     const mappedData = rows.map((row) => mapConversionData(row, category))
 
     const result = await prisma.conversionData.createMany({

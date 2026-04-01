@@ -1,15 +1,66 @@
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
+import { Readable } from 'stream'
 
 export interface ParsedRow {
   [key: string]: string | number | Date | null
 }
 
-export function parseFile(buffer: Buffer, fileName: string): ParsedRow[] {
-  const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true })
-  const sheetName = workbook.SheetNames[0]
-  const worksheet = workbook.Sheets[sheetName]
-  const data = XLSX.utils.sheet_to_json<ParsedRow>(worksheet, { raw: false, dateNF: 'yyyy-MM-dd' })
-  return data
+export async function parseFile(buffer: Buffer, fileName: string): Promise<ParsedRow[]> {
+  const workbook = new ExcelJS.Workbook()
+  const isCsv = fileName.toLowerCase().endsWith('.csv')
+
+  if (isCsv) {
+    const stream = new Readable({
+      read() {
+        this.push(buffer)
+        this.push(null)
+      },
+    })
+    await workbook.csv.read(stream)
+  } else {
+    // exceljs typings predate Node.js generic Buffer — suppress the type mismatch
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    await workbook.xlsx.load(buffer)
+  }
+
+  const worksheet = workbook.worksheets[0]
+  if (!worksheet) return []
+
+  const headers: string[] = []
+  worksheet.getRow(1).eachCell({ includeEmpty: true }, (cell) => {
+    headers.push(cell.value?.toString().trim() ?? '')
+  })
+
+  const rows: ParsedRow[] = []
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return
+    const rowData: ParsedRow = {}
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const header = headers[colNumber - 1]
+      if (!header) return
+      const val = cell.value
+      if (val instanceof Date) {
+        rowData[header] = formatDate(val)
+      } else if (val !== null && typeof val === 'object' && 'richText' in val) {
+        rowData[header] = (val as ExcelJS.CellRichTextValue).richText.map((r) => r.text).join('')
+      } else if (val !== null && typeof val === 'object' && 'result' in val) {
+        rowData[header] = String((val as ExcelJS.CellFormulaValue).result ?? '')
+      } else {
+        rowData[header] = val as string | number | null
+      }
+    })
+    rows.push(rowData)
+  })
+
+  return rows
+}
+
+function formatDate(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 export function mapOrderData(row: ParsedRow, category: string) {
