@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DataCategory {
+  MALE_CP
+  FEMALE_CP
+  MALE_BLIND_BOX
+}
+
+// 接单数据表
+model OrderData {
+  id             Int          @id @default(autoincrement())
+  category       DataCategory
+  dispatch_date  DateTime
+  studio         String?
+  host           String?
+  reception_hall String?
+  anchor         String?
+  schedule_id    String?
+  operator       String?
+  dispatch_group String?
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @updatedAt
+
+  @@map("order_data")
+}
+
+// 转化数据表
+model ConversionData {
+  id          Int          @id @default(autoincrement())
+  category    DataCategory
+  channel     String?
+  sold_date   DateTime
+  host        String?
+  hall_number String?
+  anchor      String?
+  schedule_id String?
+  vip_number  String?
+  amount      Decimal?     @db.Decimal(10, 2)
+  order_group String?
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
+
+  @@map("conversion_data")
+}
+
+// 女厅首充数据表
+model FirstChargeData {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  hall_number String?
+  count       Int      @default(0)
+  amount      Decimal? @db.Decimal(10, 2)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("first_charge_data")
+}
+
+// 女厅注册数据表
+model RegistrationData {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  hall_number String?
+  count       Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("registration_data")
+}
